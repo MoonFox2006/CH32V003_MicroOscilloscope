@@ -149,14 +149,14 @@ static void Init_ADC(uint16_t us) {
 */
 
     TIM_TimeBaseStructInit(&TIM_TimeBaseInitStructure);
-    TIM_TimeBaseInitStructure.TIM_Prescaler = (us > 1 ? 48 : 24) - 1; // 0.5/1 us.
-    TIM_TimeBaseInitStructure.TIM_Period = (us > 1 ? us : 2) - 1;
+    TIM_TimeBaseInitStructure.TIM_Prescaler = (FCPU / 1000000) / 4 - 1; // 0.25 us.
+    TIM_TimeBaseInitStructure.TIM_Period = (us << 1) - 1;
     TIM_TimeBaseInit(TIM2, &TIM_TimeBaseInitStructure);
 
     TIM_OCStructInit(&TIM_OCInitStructure);
-    TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
+    TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_Toggle;
     TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
-    TIM_OCInitStructure.TIM_Pulse = (us > 1 ? us : 2) - 1;
+    TIM_OCInitStructure.TIM_Pulse = 1;
     TIM_OC1Init(TIM2, &TIM_OCInitStructure);
 
     TIM_CtrlPWMOutputs(TIM2, ENABLE);
@@ -222,13 +222,13 @@ static void Init_ADC(uint16_t us) {
 */
 
     TIM2->CTLR1 = TIM_ARPE;
-    TIM2->ATRLR = (us > 1 ? us : 2) - 1;
-    TIM2->PSC = (us > 1 ? 48 : 24) - 1; // 0.5/1 us.
+    TIM2->ATRLR = (us << 1) - 1;
+    TIM2->PSC = (FCPU / 1000000) / 4 - 1; // 0.25 us.
     TIM2->SWEVGR = TIM_UG;
 
     UPDATE_REG16(&TIM2->CCER, ~(TIM_CC1E | TIM_CC1P), TIM_CC1E);
-    UPDATE_REG16(&TIM2->CHCTLR1, ~(TIM_OC1M | TIM_CC1S | TIM_OC1PE), TIM_OC1M_1 | TIM_OC1M_2);
-    TIM2->CH1CVR = (us > 1 ? us : 2) - 1;
+    UPDATE_REG16(&TIM2->CHCTLR1, ~(TIM_OC1M | TIM_CC1S | TIM_OC1PE), TIM_OC1M_1 | TIM_OC1M_0);
+    TIM2->CH1CVR = 1;
 
     TIM2->BDTR |= TIM_MOE;
 //    TIM2->CTLR1 |= TIM_CEN;
@@ -257,10 +257,7 @@ static void Reinit_ADC(uint16_t us) {
 #endif
 */
 
-    TIM_SetAutoreload(TIM2, (us > 1 ? us : 2) - 1);
-    TIM_PrescalerConfig(TIM2, (us > 1 ? 48 : 24) - 1, TIM_PSCReloadMode_Immediate); // 0.5/1 us.
-
-    TIM_SetCompare1(TIM2, (us > 1 ? us : 2) - 1);
+    TIM_SetAutoreload(TIM2, (us << 1) - 1);
 #else
     TIM2->CTLR1 &= ~TIM_CEN;
     DMA1_Channel1->CFGR &= ~(uint32_t)DMA_CFGR1_EN;
@@ -284,11 +281,8 @@ static void Reinit_ADC(uint16_t us) {
 
     ADC1->CTLR2 |= ADC_ADON;
 
-    TIM2->ATRLR = (us > 1 ? us : 2) - 1;
-    TIM2->PSC = (us > 1 ? 48 : 24) - 1; // 0.5/1 us.
+    TIM2->ATRLR = (us << 1) - 1;
     TIM2->SWEVGR = TIM_UG;
-
-    TIM2->CH1CVR = (us > 1 ? us : 2) - 1;
 #endif
 }
 
